@@ -3,11 +3,13 @@
  * 
  * Compile with: gcc -Wall -o test ../core/DHT.c DHT_test.c
  * 
- * Command line arguments are the ip and port of a node
- * EX: ./test 127.0.0.1 33445
+ * Command line arguments are the ip and port of a node and the client_id of the friend you want to find the ip_port of
+ * EX: ./test 127.0.0.1 33445 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef
  */
 
 #include "../core/DHT.h"
+
+#include <string.h>
 
 //Sleep function (x = milliseconds)
 #ifdef WIN32
@@ -16,6 +18,7 @@
 
 #else
 #include <unistd.h>
+#include <arpa/inet.h>
 #define c_sleep(x) usleep(1000*x)
 
 #endif
@@ -23,9 +26,64 @@
 #define PORT 33445
 
 
+void print_clientlist()
+{
+    uint32_t i, j;
+    IP_Port p_ip;
+    printf("___________________CLOSE________________________________\n");
+    for(i = 0; i < 4; i++)
+    {
+        printf("ClientID: ");
+        for(j = 0; j < 32; j++)
+        {
+            printf("%c", close_clientlist[i].client_id[j]);
+        }
+        p_ip = close_clientlist[i].ip_port;
+        printf("\nIP: %u.%u.%u.%u Port: %u",p_ip.ip.c[0],p_ip.ip.c[1],p_ip.ip.c[2],p_ip.ip.c[3],ntohs(p_ip.port));
+        printf("\nTimestamp: %u\n", close_clientlist[i].timestamp);
+    }  
+}
+
+void print_friendlist()
+{
+    uint32_t i, j, k;
+    IP_Port p_ip;
+    printf("_________________FRIENDS__________________________________\n");
+    for(k = 0; k < num_friends; k++)
+    {
+        printf("FRIEND %u\n", k);
+        printf("ID: ");
+        for(j = 0; j < 32; j++)
+        {
+            printf("%c", friends_list[k].client_id[j]);
+        }
+        p_ip = getfriendip(friends_list[k].client_id);
+        printf("\nIP: %u.%u.%u.%u:%u",p_ip.ip.c[0],p_ip.ip.c[1],p_ip.ip.c[2],p_ip.ip.c[3],ntohs(p_ip.port));
+
+        printf("\nCLIENTS IN LIST:\n\n ");
+        
+        for(i = 0; i < 4; i++)
+        {
+            printf("ClientID: ");
+            for(j = 0; j < 32; j++)
+            {
+                printf("%X", friends_list[k].client_list[i].client_id[j]);
+            }
+            p_ip = friends_list[k].client_list[i].ip_port;
+            printf("\nIP: %u.%u.%u.%u:%u",p_ip.ip.c[0],p_ip.ip.c[1],p_ip.ip.c[2],p_ip.ip.c[3],ntohs(p_ip.port));
+            printf("\nTimestamp: %u\n", friends_list[k].client_list[i].timestamp);
+        }
+    }
+}
+
+
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
+    int randdomnum = rand();
+    memcpy(self_client_id, &randdomnum, 4);
+    
     #ifdef WIN32
     WSADATA wsaData;
     if(WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
@@ -34,10 +92,11 @@ int main(int argc, char *argv[])
     }
     #endif
     
-    if (argc < 3) {
-        printf("usage %s ip port\n", argv[0]);
+    if (argc < 4) {
+        printf("usage %s ip port client_id(of friend to find ip_port of)\n", argv[0]);
         exit(0);
     }
+    addfriend(argv[3]);
     
     //initialize our socket
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); 
@@ -52,9 +111,9 @@ int main(int argc, char *argv[])
     #endif
     
     //Bind our socket to port PORT and address 0.0.0.0
-    ADDR addr = {.family = AF_INET, .ip.i = 0, .port = htons(PORT)}; 
+    ADDR addr = {AF_INET, htons(PORT), {{0}}}; 
     bind(sock, (struct sockaddr*)&addr, sizeof(addr));
-    
+    perror("Initialization");
     IP_Port bootstrap_ip_port;
     bootstrap_ip_port.port = htons(atoi(argv[2]));
     //bootstrap_ip_port.ip.c[0] = 127;
@@ -75,14 +134,18 @@ int main(int argc, char *argv[])
             
         doDHT();
         
-        if(recievepacket(&ip_port, data, &length) != -1)
+        while(recievepacket(&ip_port, data, &length) != -1)
         {
             if(DHT_recvpacket(data, length, ip_port))
             {
                 printf("UNHANDLED PACKET RECEIVED\nLENGTH:%u\nCONTENTS:\n", length);
                 printf("--------------------BEGIN-----------------------------\n");
                 for(i = 0; i < length; i++)
-                    printf("%c",data[i]);
+                {
+                    if(data[i] < 16)
+                        printf("0");
+                    printf("%X",data[i]);
+                }
                 printf("\n--------------------END-----------------------------\n\n\n");
             }
             else
@@ -90,7 +153,9 @@ int main(int argc, char *argv[])
                 printf("Received handled packet with length: %u\n", length);
             }
         }
-        c_sleep(100);
+        print_clientlist();
+        print_friendlist();
+        c_sleep(300);
     }
     
     #ifdef WIN32

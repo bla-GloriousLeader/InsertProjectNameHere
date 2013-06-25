@@ -1,3 +1,6 @@
+#ifndef DHT_H 
+#define DHT_H 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -37,7 +40,8 @@ typedef struct
 {
     IP ip;
     uint16_t port;
-    
+    //not used for anything right now
+    uint16_t padding; 
 }IP_Port;
 
 
@@ -48,14 +52,21 @@ typedef struct
     uint32_t timestamp;
     
 }Client_data;
+//maximum number of clients stored per friend.
+#define MAX_FRIEND_CLIENTS 8
+typedef struct
+{
+    char client_id[CLIENT_ID_SIZE];
+    Client_data client_list[MAX_FRIEND_CLIENTS];
+    
+}Friend;
 
 
 typedef struct
 {
     char client_id[CLIENT_ID_SIZE];
-    Client_data client_list[8];
-    
-}Friend;
+    IP_Port ip_port;
+}Node_format;
 
 typedef struct
 {
@@ -81,13 +92,15 @@ typedef struct
 
 //Add a new friend to the friends list
 //client_id must be CLIENT_ID_SIZE bytes long.
-void addfriend(char * client_id);
+//returns 0 if success
+//returns 1 if failure (friends list is full)
+int addfriend(char * client_id);
 
 //Delete a friend from the friends list
 //client_id must be CLIENT_ID_SIZE bytes long.
 //returns 0 if success
 //returns 1 if failure (client_id not in friends list)
-char delfriend(char * client_id);
+int delfriend(char * client_id);
 
 
 //Get ip of friend
@@ -96,6 +109,7 @@ char delfriend(char * client_id);
 //port must be 2 bytes long.
 //returns ip if success
 //returns ip of 0 if failure (This means the friend is either offline or we have not found him yet.)
+//returns ip of 1 if friend is not in list.
 IP_Port getfriendip(char * client_id);
 
 
@@ -125,13 +139,17 @@ char self_client_id[CLIENT_ID_SIZE];
 //We only use one so it's much easier to have it as a global variable
 int sock;
 
+//TODO: Move these out of here and put them into the .c file.
 //A list of the clients mathematically closest to ours.
 #define LCLIENT_LIST 32
 Client_data close_clientlist[LCLIENT_LIST];
 
 
+//Hard maximum number of friends 
+#define MAX_FRIENDS 256
+
 //Let's start with a static array for testing.
-Friend friends_list[256];
+Friend friends_list[MAX_FRIENDS];
 uint16_t num_friends;
 
 //The list of ip ports along with the ping_id of what we sent them and a timestamp
@@ -154,3 +172,5 @@ int sendpacket(IP_Port ip_port, char * data, uint32_t length);
 //the packet data into data
 //the packet length into length.
 int recievepacket(IP_Port * ip_port, char * data, uint32_t * length);
+
+#endif 
