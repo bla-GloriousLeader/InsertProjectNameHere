@@ -3,6 +3,13 @@
 #include "portaudio.h"
 #include <math.h>
 
+typedef struct{
+	int max_size;
+	int current_size;
+	int playback_current_size;
+	float *data;
+} Buffer;
+
 static int patestCallback( const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
                            const PaStreamCallbackTimeInfo* timeInfo,
@@ -10,25 +17,37 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
                            void *userData )
 {
     /* Cast data passed through stream to our structure. */
-    float *data = (float*)userData; 
-    float *out = (float*)outputBuffer;
+    float *in = (float*) inputBuffer;
+    float *out = (float*) outputBuffer;
     unsigned int i;
-    (void) outputBuffer; /* Prevent unused variable warning. */
+    Buffer *buf = (Buffer*) userData;
     
     for( i=0; i<framesPerBuffer; i++ )
     {
-        *out++ = *data > 0 ? 1.0f : 0.0f;
-        /* Generate simple sawtooth phaser that ranges between -1.0 and 1.0. */
-		*data+= 0.06f;
-        /* When signal reaches top, drop back down. */
-        if( *data >= 1.0f ) *data -= 2.0f;
+        if(buf->current_size < buf->max_size)
+        {
+			buf->data[buf->current_size] = in[i];
+			buf->current_size++;
+			
+		} else if(buf->playback_current_size < buf->max_size)
+		{
+			out[i] = (-buf->data[buf->playback_current_size]);
+			buf->playback_current_size++;
+		} else
+		{
+			out[i] = 0;
+		}
     }
+    
     return 0;
 }
 
 int main(void)
 {
-	float udata;
+	Buffer udata;
+	
+	float adata[65536 * 4];
+	
 	PaStream *stream;
 	PaError err;
 	
@@ -39,7 +58,12 @@ int main(void)
 		return 0;
 	}
 	
-	err = Pa_OpenDefaultStream(&stream, 1, 0, paFloat32, 44100, 256, patestCallback, &udata);
+	udata.max_size = 65536 * 4;
+	udata.current_size = 0;
+	udata.playback_current_size = 0;
+	udata.data = adata;
+	
+	err = Pa_OpenDefaultStream(&stream, 1, 1, paFloat32, 44100, 256, patestCallback, &udata);
 	if(err != paNoError)
 	{
 		printf("SHIT!");
@@ -53,7 +77,7 @@ int main(void)
 		return 0;
 	}
 	
-	Pa_Sleep(2000);
+	Pa_Sleep(12000);
 	
 	Pa_StopStream(stream);
 	
