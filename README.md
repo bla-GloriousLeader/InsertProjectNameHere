@@ -9,7 +9,7 @@ Proposal of a free as in freedom skype replacement:
 
 ## Basics:
 
-UDP most be used for everything simply because you can't do hole punching with TCP (well you can but it doesn't work all the time)
+UDP must be used for everything simply because you can't do hole punching with TCP (well you can but it doesn't work all the time)
     
 Every peer is represented as a byte string (the client id) (it is the hash (SHA-256?) of the public key of the peer). (if you want to add someone you need that id (either ask that person directly or maybe through some kind of search engine?))
     
@@ -39,12 +39,13 @@ See: [docs/TODO.txt](https://github.com/irungentoo/InsertProjectNameHere/blob/ma
 
 Use the same UDP socket for everything
 
+Keep everything really simple.
+
 ### Details:
 
 DHT protocol:
-    see: [docs/DHT.txt](https://github.com/irungentoo/InsertProjectNameHere/blob/master/docs/DHT.txt)
+    see: [docs/DHT.txt](/docs/DHT.txt)
     
 Lossless UDP protocol:
-    Either we find one with an already working implementation (Preferred solution)
-    It should not be very hard to come up with one ourselves though if need be.
-    see also: [docs/Lossless_UDP.txt](https://github.com/irungentoo/InsertProjectNameHere/blob/master/docs/Lossless_UDP.txt)
+    Either we find one with an already working implementation (Didn't find a good implementation, writing my own)
+    see also: [docs/Lossless_UDP.txt](/docs/Lossless_UDP.txt)

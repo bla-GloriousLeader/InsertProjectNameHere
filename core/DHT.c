@@ -1,39 +1,33 @@
+/* DHT.c
+* 
+* An implementation of the DHT as seen in docs/DHT.txt
+* 
+ 
+    Copyright (C) 2013 Tox project All Rights Reserved.
+
+    This file is part of Tox.
+
+    Tox is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Tox is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Tox.  If not, see <http://www.gnu.org/licenses/>.
+    
+*/
+
+
+
+
 #include "DHT.h"
 
-
-//Basic network functions:
-//TODO: put them somewhere else than here
-
-//Function to send packet(data) of length length to ip_port
-int sendpacket(IP_Port ip_port, char * data, uint32_t length)
-{
-    ADDR addr = {AF_INET, ip_port.port, ip_port.ip}; 
-    return sendto(sock, data, length, 0, (struct sockaddr *)&addr, sizeof(addr));
-    
-}
-
-//Function to recieve data, ip and port of sender is put into ip_port
-//the packet data into data
-//the packet length into length.
-//dump all empty packets.
-int recievepacket(IP_Port * ip_port, char * data, uint32_t * length)
-{
-    ADDR addr;
-    uint32_t addrlen = sizeof(addr);
-    (*(int *)length) = recvfrom(sock, data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
-    if(*(int *)length <= 0)
-    {
-        //nothing recieved
-        //or empty packet
-        return -1;
-    }
-    ip_port->ip = addr.ip;
-    ip_port->port = addr.port;
-    return 0;
-    
-}
-
-
+char self_client_id[CLIENT_ID_SIZE];
 
 //Compares client_id1 and client_id2 with client_id
 //return 0 if both are same distance
@@ -61,6 +55,7 @@ int id_closest(char * client_id, char * client_id1, char * client_id2)//tested
 
 //check if client with client_id is already in list of length length.
 //if it is set it's corresponding timestamp to current time.
+//if the ip_port is already in the list but associated to a different ip, change it.
 //return True(1) or False(0)
 //TODO: maybe optimize this.
 int client_in_list(Client_data * list, uint32_t length, char * client_id, IP_Port ip_port)
@@ -665,7 +660,7 @@ IP_Port getfriendip(char * client_id)
 
 
 
-int DHT_recvpacket(char * packet, uint32_t length, IP_Port source)
+int DHT_handlepacket(char * packet, uint32_t length, IP_Port source)
 {
     switch (packet[0]) {
     case 0:
@@ -743,7 +738,7 @@ void doFriends()
 static uint32_t close_lastgetnodes;
 
 //Ping each client in the close nodes list every 60 seconds.
-//Send a get nodes request every 20 seconds to a random good node int the list.
+//Send a get nodes request every 20 seconds to a random good node in the list.
 void doClose()//tested
 {
     uint32_t i;

@@ -1,12 +1,12 @@
 /* DHT test
  * A file with a main that runs our DHT for testing.
  * 
- * Compile with: gcc -Wall -o test ../core/DHT.c DHT_test.c
+ * Compile with: gcc -O2 -Wall -o test ../core/DHT.c ../core/network.c DHT_test.c
  * 
  * Command line arguments are the ip and port of a node and the client_id (32 bytes) of the friend you want to find the ip_port of
  * EX: ./test 127.0.0.1 33445 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef
  */
-
+#include "../core/network.h"
 #include "../core/DHT.h"
 
 #include <string.h>
@@ -87,35 +87,19 @@ int main(int argc, char *argv[])
     memcpy(self_client_id, &randdomnum, 4);
     //memcpy(self_client_id, "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq", 32);
     
-    #ifdef WIN32
-    WSADATA wsaData;
-    if(WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-    {
-        return -1;
-    }
-    #endif
-    
     if (argc < 4) {
         printf("usage %s ip port client_id(of friend to find ip_port of)\n", argv[0]);
         exit(0);
     }
     addfriend(argv[3]);
     
-    //initialize our socket
-    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); 
-    //Set socket nonblocking
-    #ifdef WIN32
-    //I think this works for windows
-    u_long mode = 1;
-    //ioctl(sock, FIONBIO, &mode);
-    ioctlsocket(sock, FIONBIO, &mode); 
-    #else
-    fcntl(sock, F_SETFL, O_NONBLOCK, 1);
-    #endif
     
-    //Bind our socket to port PORT and address 0.0.0.0
-    ADDR addr = {AF_INET, htons(PORT), {{0}}}; 
-    bind(sock, (struct sockaddr*)&addr, sizeof(addr));
+    //initialize networking
+    //bind to ip 0.0.0.0:PORT
+    IP ip;
+    ip.i = 0;
+    init_networking(ip, PORT);
+
     perror("Initialization");
     IP_Port bootstrap_ip_port;
     bootstrap_ip_port.port = htons(atoi(argv[2]));
@@ -139,7 +123,7 @@ int main(int argc, char *argv[])
         
         while(recievepacket(&ip_port, data, &length) != -1)
         {
-            if(DHT_recvpacket(data, length, ip_port))
+            if(DHT_handlepacket(data, length, ip_port))
             {
                 printf("UNHANDLED PACKET RECEIVED\nLENGTH:%u\nCONTENTS:\n", length);
                 printf("--------------------BEGIN-----------------------------\n");
