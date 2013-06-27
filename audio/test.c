@@ -24,9 +24,11 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
     float *out = (float*) outputBuffer;
     Buffer *buf = (Buffer*) userData;
     
-    buf->current_size = (int) opus_encode_float(enc, in, 256, (unsigned char*) buf->data, buf->max_size * sizeof(float));
+    buf->current_size = (int) opus_encode_float(enc, in, (int) framesPerBuffer, (unsigned char*) buf->data, buf->max_size * sizeof(float));
+    if(buf->current_size < 0) printf("(1)Error %i ", buf->current_size);
     
-    buf->current_size = opus_decode_float(dec, (unsigned char*) buf->data, (opus_int32) buf->current_size, out, 256, 0);
+    buf->current_size = opus_decode_float(dec, (unsigned char*) buf->data, (opus_int32) buf->current_size, out, (int) framesPerBuffer, 0);
+    if(buf->current_size < 0) printf("(2)Error %i ", buf->current_size);
      
     return 0;
 }
@@ -54,7 +56,7 @@ int main(void)
 	udata.data = adata;
 	
 	//Start up an opus encoder, 1 channel
-	enc = opus_encoder_create(48000, 1, OPUS_APPLICATION_AUDIO, &opuserror);
+	enc = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &opuserror);
 	if(opuserror != OPUS_OK)
 	{
 		printf("Error: Failed to create an opus encoder.");
@@ -72,7 +74,7 @@ int main(void)
 	
 	//Start up a PortAudio stream, 1-channel, both input and output
 	//Using a sample rate of 48000 here because opus doesn't seem to support 44100
-	err = Pa_OpenDefaultStream(&stream, 1, 1, paFloat32, 48000, 256, patestCallback, &udata);
+	err = Pa_OpenDefaultStream(&stream, 1, 1, paFloat32, 48000, 480, patestCallback, &udata);
 	if(err != paNoError)
 	{
 		printf("Error: Failed to open an audio stream.");
