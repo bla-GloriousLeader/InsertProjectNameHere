@@ -32,6 +32,7 @@
 #include <string.h>
 #include <time.h>
 
+
 #ifdef WIN32 //Put win32 includes here
 
 #include <winsock2.h>
@@ -43,7 +44,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
-
+#include <sys/time.h>
 #endif
 
 #define MAX_UDP_PACKET_SIZE 65507
@@ -75,7 +76,8 @@ typedef struct
 }ADDR;
 
 
-
+//returns current time in milleseconds since the epoch.
+uint64_t current_time();
 
 //Basic network functions:
 
@@ -94,4 +96,8 @@ int recievepacket(IP_Port * ip_port, char * data, uint32_t * length);
 //returns 0 if no problems
 //TODO: add something to check if there are errors
 int init_networking(IP ip ,uint16_t port);
+
+
+//function to cleanup networking stuff(doesn't do much right now)
+void shutdown_networking();
 #endif
