@@ -25,7 +25,7 @@
 #include "network.h"
 
 
-//returns current time in milleseconds since the epoch.
+//returns current time in milliseconds since the epoch.
 uint64_t current_time()
 {
     uint64_t time;
@@ -40,6 +40,16 @@ uint64_t current_time()
     
 }
 
+int random_int()
+{
+    #ifdef WIN32
+    //TODO replace rand with a more random windows function
+    return rand();
+    #else
+    return random();
+    #endif
+}
+
 //our UDP socket, a global variable.
 static int sock;
 
@@ -52,7 +62,7 @@ int sendpacket(IP_Port ip_port, char * data, uint32_t length)
     
 }
 
-//Function to recieve data, ip and port of sender is put into ip_port
+//Function to receive data, ip and port of sender is put into ip_port
 //the packet data into data
 //the packet length into length.
 //dump all empty packets.
@@ -63,7 +73,7 @@ int recievepacket(IP_Port * ip_port, char * data, uint32_t * length)
     (*(int *)length) = recvfrom(sock, data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
     if(*(int *)length <= 0)
     {
-        //nothing recieved
+        //nothing received
         //or empty packet
         return -1;
     }
@@ -87,12 +97,16 @@ int init_networking(IP ip ,uint16_t port)
     {
         return -1;
     }
+    
+    #else
+    srandom((uint32_t)current_time());
     #endif
+    srand((uint32_t)current_time());
     
     //initialize our socket
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); 
     
-    //Functions to increase the size of the send and recieve UDP buffers
+    //Functions to increase the size of the send and receive UDP buffers
     //NOTE: uncomment if necessary
     /*
     int n = 1024 * 1024 * 2;
