@@ -1,17 +1,29 @@
 Things to do now:
 
--Network protocol for clients when they know their ips.
+-Network protocol (Done)
 
--Start coding the gui
+-Figure out the best way to do "lossless" UDP. (Done)
+
+-Start work on the im protocol.(simple im part pretty much done)
+
+-Start coding the gui (In Progress (Using Qt5))
 
 -Get a basic im client working using the now completed DHT implementation to find the ips of your friends.
 
--Find some good encryption libraries.
-    I found this: http://libtom.org/
-    It looks pretty good so far
-    It's licenced under the WTFPL which is perfect.
+-Find some good encryption libraries.(Done)
+    we will use: http://nacl.cr.yp.to/
 
--Figure out the best way to do "lossless" UDP.
+-Add NaCl to our build system.
+
+-Make NaCl work on windows (DONE)
+    https://github.com/jedisct1/libsodium
+    
+
+-Crypto (Done (needs testing))
+
+-Harden the DHT (Research in progress)
+
+-Find and fix bugs in the code.
 
 Things to do later:
 

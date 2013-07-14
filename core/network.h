@@ -33,10 +33,13 @@
 #include <time.h>
 
 
+
 #ifdef WIN32 //Put win32 includes here
 
 #include <winsock2.h>
 #include <windows.h>
+
+#undef VANILLA_NACL//make sure on windows we use libsodium
 
 #else //Linux includes
 
@@ -45,7 +48,21 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <sys/time.h>
+
+
 #endif
+
+#ifndef VANILLA_NACL
+//we use libsodium by default
+#include <sodium.h>
+#else
+
+//TODO: Including stuff like this is bad. This needs fixing.
+//We keep support for the original NaCl for now.
+#include "../nacl/build/Linux/include/amd64/crypto_box.h"
+
+#endif
+
 
 #define MAX_UDP_PACKET_SIZE 65507
 
@@ -80,17 +97,18 @@ typedef struct
 uint64_t current_time();
 
 //return a random number
-int random_int();
+//NOTE: this function should probably not be used where cryptographic randomness is absolutely necessary
+uint32_t random_int();
 
 //Basic network functions:
 
 //Function to send packet(data) of length length to ip_port
-int sendpacket(IP_Port ip_port, char * data, uint32_t length);
+int sendpacket(IP_Port ip_port, uint8_t * data, uint32_t length);
 
-//Function to recieve data, ip and port of sender is put into ip_port
+//Function to receive data, ip and port of sender is put into ip_port
 //the packet data into data
 //the packet length into length.
-int recievepacket(IP_Port * ip_port, char * data, uint32_t * length);
+int receivepacket(IP_Port * ip_port, uint8_t * data, uint32_t * length);
 
 //initialize networking
 //bind to ip and port

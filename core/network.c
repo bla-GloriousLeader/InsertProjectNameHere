@@ -25,26 +25,36 @@
 #include "network.h"
 
 
-//returns current time in milliseconds since the epoch.
+//returns current UNIX time in microseconds (us).
 uint64_t current_time()
 {
     uint64_t time;
     #ifdef WIN32
-    //TODO: windows version
+    //This probably works fine
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    time = ft.dwHighDateTime;
+    time <<=32;
+    time |= ft.dwLowDateTime;
+    time -= 116444736000000000UL;
+    return time/10;
     #else
     struct timeval a;
     gettimeofday(&a, NULL);
     time = 1000000UL*a.tv_sec + a.tv_usec;
-    #endif
     return time;
+    #endif
+    
     
 }
 
-int random_int()
+//return a random number
+//NOTE: this function should probably not be used where cryptographic randomness is absolutely necessary
+uint32_t random_int()
 {
-    #ifdef WIN32
-    //TODO replace rand with a more random windows function
-    return rand();
+    #ifndef VANILLA_NACL
+    //NOTE: this function comes from libsodium
+    return randombytes_random();
     #else
     return random();
     #endif
@@ -55,10 +65,10 @@ static int sock;
 
 //Basic network functions:
 //Function to send packet(data) of length length to ip_port
-int sendpacket(IP_Port ip_port, char * data, uint32_t length)
+int sendpacket(IP_Port ip_port, uint8_t * data, uint32_t length)
 {
     ADDR addr = {AF_INET, ip_port.port, ip_port.ip}; 
-    return sendto(sock, data, length, 0, (struct sockaddr *)&addr, sizeof(addr));
+    return sendto(sock,(char *) data, length, 0, (struct sockaddr *)&addr, sizeof(addr));
     
 }
 
@@ -66,12 +76,16 @@ int sendpacket(IP_Port ip_port, char * data, uint32_t length)
 //the packet data into data
 //the packet length into length.
 //dump all empty packets.
-int recievepacket(IP_Port * ip_port, char * data, uint32_t * length)
+int receivepacket(IP_Port * ip_port, uint8_t * data, uint32_t * length)
 {
     ADDR addr;
+    #ifdef WIN32
+    int addrlen = sizeof(addr);
+    #else
     uint32_t addrlen = sizeof(addr);
-    (*(int *)length) = recvfrom(sock, data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
-    if(*(int *)length <= 0)
+    #endif    
+    (*(int32_t *)length) = recvfrom(sock,(char *) data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
+    if(*(int32_t *)length <= 0)
     {
         //nothing received
         //or empty packet
